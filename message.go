@@ -475,13 +475,29 @@ func (m *Message) UnmarshalBinary(data []byte) error {
 			b = b[1:]
 			break
 		}
-		oid := OptionID(prev + int(b[0]>>4))
+		od := int(b[0] >> 4)
 		l := int(b[0] & 0xf)
 		b = b[1:]
-		if l > 14 {
+
+		if od == 13 {
+			od += int(b[0])
+			b = b[1:]
+		} else if od == 14 {
+			od = int(binary.BigEndian.Uint16(b[0:2]) + 269)
+			b = b[2:]
+		}
+
+		if l == 13 {
 			l += int(b[0])
 			b = b[1:]
+		} else if l == 14 {
+			l = int(binary.BigEndian.Uint16(b[0:2]) + 269)
+			b = b[2:]
+		} else if l == 15 {
+			return errors.New("error message")
 		}
+		oid := OptionID(prev + od)
+
 		if len(b) < l {
 			return errors.New("truncated")
 		}
